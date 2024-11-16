@@ -1,0 +1,7 @@
+{
+    "saucedemo": {
+        "correct_user": "standard_user",
+        "passwordPage": "secret_sauce",
+        "locked_out_user": "Epic sadface: Sorry, this user has been locked out."
+    }
+}
