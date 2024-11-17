@@ -1,3 +1,4 @@
+import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -31,3 +32,13 @@ class BasePage:
             )
             is not None
         )
+
+    def assert_url(self, expected_url: str):
+        current_url = self.driver.current_url
+        assert current_url == expected_url, f"Expected {expected_url}, but got {current_url}"
+    
+    def wait_for_time_seconds(self, seconds):
+        time.sleep(seconds)
+    
+
+
