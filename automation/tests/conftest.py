@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def pytest_addoption(parser):
+    # Agregar opciones de configuración para los navegadores y modo headless
     parser.addoption(
         "--browser",
         action="store",
@@ -17,13 +18,16 @@ def pytest_addoption(parser):
     parser.addoption(
         "--headless",
         action="store_true",
+        default=True,
         help="Run browser in headless mode",
     )
 
 
 @pytest.fixture(scope="function")
 def driver(request):
-    logging.info("Dentroooooooooo")
+    logging.info("Dentro del fixture driver")
+
+    # Obtener opciones de configuración
     browser = request.config.getoption("--browser")
     headless = request.config.getoption("--headless")
 
@@ -36,29 +40,39 @@ def driver(request):
     elif "web" in markers:
         device = "desktop"
 
+    # Configuración para Chrome
     if browser == "chrome":
         options = Options()
         if headless:
             options.add_argument("--headless")
             options.add_argument("--disable-gpu")
-        # Configuración del tamaño de ventana basado en el marcador
+        # Configuración del tamaño de la ventana según el marcador
         if device == "mobile":
             options.add_argument("--window-size=375,667")
         else:
             options.add_argument("--window-size=1920,1080")
         driver = webdriver.Chrome(options=options)
+
+    # Configuración para Firefox
     elif browser == "firefox":
         options = FirefoxOptions()
         if headless:
             options.add_argument("--headless")
-        # Configuración del tamaño de ventana basado en el marcador
         driver = webdriver.Firefox(options=options)
+        # Configuración del tamaño de la ventana según el marcador
         if device == "mobile":
             driver.set_window_size(375, 667)
         else:
             driver.set_window_size(1920, 1080)
+
+    # Si el navegador no está soportado
     else:
         raise ValueError(f"Unsupported browser: {browser}")
-    logging.info(f"Ejecutando en el navegador {browser} en versión {device} ")
-    yield driver
+
+    # Log para confirmar la ejecución
+    logging.info(f"Ejecutando en el navegador {browser} en versión {device}")
+
+    yield driver  # Retorna el driver para el test
+
+    # Cerrar el driver después de los tests
     driver.quit()

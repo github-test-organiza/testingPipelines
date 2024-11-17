@@ -128,7 +128,7 @@
         "kind": 2,
         "importPath": "automation.tests.conftest",
         "description": "automation.tests.conftest",
-        "peekOfCode": "def pytest_addoption(parser):\n    parser.addoption(\n        \"--browser\",\n        action=\"store\",\n        default=\"chrome\",\n        help=\"Browser to use: chrome or firefox\",\n    )\n    parser.addoption(\n        \"--headless\",\n        action=\"store_true\",",
+        "peekOfCode": "def pytest_addoption(parser):\n    # Agregar opciones de configuración para los navegadores y modo headless\n    parser.addoption(\n        \"--browser\",\n        action=\"store\",\n        default=\"chrome\",\n        help=\"Browser to use: chrome or firefox\",\n    )\n    parser.addoption(\n        \"--headless\",",
         "detail": "automation.tests.conftest",
         "documentation": {}
     },
@@ -137,7 +137,7 @@
         "kind": 2,
         "importPath": "automation.tests.conftest",
         "description": "automation.tests.conftest",
-        "peekOfCode": "def driver(request):\n    logging.info(\"Dentroooooooooo\")\n    browser = request.config.getoption(\"--browser\")\n    headless = request.config.getoption(\"--headless\")\n    # Detectar marcadores específicos\n    markers = [mark.name for mark in request.node.iter_markers()]\n    device = \"desktop\"  # Valor por defecto\n    if \"mobile\" in markers:\n        device = \"mobile\"\n    elif \"web\" in markers:",
+        "peekOfCode": "def driver(request):\n    logging.info(\"Dentro del fixture driver\")\n    # Obtener opciones de configuración\n    browser = request.config.getoption(\"--browser\")\n    headless = request.config.getoption(\"--headless\")\n    # Detectar marcadores específicos\n    markers = [mark.name for mark in request.node.iter_markers()]\n    device = \"desktop\"  # Valor por defecto\n    if \"mobile\" in markers:\n        device = \"mobile\"",
         "detail": "automation.tests.conftest",
         "documentation": {}
     },
