@@ -2,14 +2,24 @@ import pytest
 from automation.pages.profile import ProfilePage
 from automation.utils.common_data import CommonData
 
+
 @pytest.mark.parametrize(
     "username, password, expected_url",
     [
-        (CommonData.saucedemo_credentials["correct_user"], CommonData.saucedemo_credentials["passwordPage"], "https://www.saucedemo.com/inventory.html"),
-        ("invalid_user", CommonData.saucedemo_credentials["passwordPage"], "https://www.saucedemo.com/"),
+        (
+            CommonData.saucedemo_credentials["correct_user"],
+            CommonData.saucedemo_credentials["passwordPage"],
+            "https://www.saucedemo.com/inventory.html",
+        ),
+        (
+            "invalid_user",
+            CommonData.saucedemo_credentials["passwordPage"],
+            "https://www.saucedemo.com/",
+        ),
     ],
 )
 @pytest.mark.web
+@pytest.mark.browser_firefox
 def test_login_web(driver, username, password, expected_url):
     # Instanciar la página de perfil
     profile_page = ProfilePage(driver)
@@ -18,14 +28,24 @@ def test_login_web(driver, username, password, expected_url):
 
     profile_page.login(username, password, expected_url)
 
+
 @pytest.mark.parametrize(
     "username, password, expected_url",
     [
-        (CommonData.saucedemo_credentials["correct_user"], CommonData.saucedemo_credentials["passwordPage"], "https://www.saucedemo.com/inventory.html"),
-        ("invalid_user", CommonData.saucedemo_credentials["passwordPage"], "https://www.saucedemo.com/"),
+        (
+            CommonData.saucedemo_credentials["correct_user"],
+            CommonData.saucedemo_credentials["passwordPage"],
+            "https://www.saucedemo.com/inventory.html",
+        ),
+        (
+            "invalid_user",
+            CommonData.saucedemo_credentials["passwordPage"],
+            "https://www.saucedemo.com/",
+        ),
     ],
 )
 @pytest.mark.mobile
+@pytest.mark.browser_firefox
 def test_login_mobile(driver, username, password, expected_url):
     # Instanciar la página de perfil
     profile_page = ProfilePage(driver)

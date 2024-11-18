@@ -18,7 +18,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--headless",
         action="store_true",
-        default=True,
+        default=False,
         help="Run browser in headless mode",
     )
 
@@ -31,6 +31,7 @@ def driver(request):
     browser = request.config.getoption("--browser")
     headless = request.config.getoption("--headless")
 
+    logging.info(f"BROWSER::: {browser}")
     # Detectar marcadores específicos
     markers = [mark.name for mark in request.node.iter_markers()]
     device = "desktop"  # Valor por defecto
@@ -39,6 +40,11 @@ def driver(request):
         device = "mobile"
     elif "web" in markers:
         device = "desktop"
+
+    if "browser_firefox" in markers:
+        browser = "firefox"
+    else:
+        browser = "chrome"
 
     # Configuración para Chrome
     if browser == "chrome":
