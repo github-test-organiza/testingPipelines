@@ -28,7 +28,7 @@ jobs:
 
       # Ejecutar Pytest
       - name: Run tests
-        run: pytest -s automation/tests/test_profile.py
+        run: pytest -s
 
       # Guardar reportes como artifacts
       - name: Upload test reports
