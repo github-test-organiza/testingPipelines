@@ -49,15 +49,6 @@ jobs:
           echo "PUBLIC_IP=$PUBLIC_IP"
           echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
 
-      # Levantar el self-hosted runner
-      - name: Start self-hosted runner on EC2
-        run: |
-          echo "Starting self-hosted runner on EC2"
-          ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY ubuntu@$PUBLIC_IP << 'EOF'
-            cd actions-runner/
-            ./run.sh &
-          EOF
-
   test:
     needs: deploy-and-test  # Espera a que el job 'deploy-and-test' termine
     runs-on: self-hosted  # Usa el self-hosted runner
@@ -102,3 +93,4 @@ jobs:
           echo "Stopping EC2 Instance"
           aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance Stopped"
+    if: always()
