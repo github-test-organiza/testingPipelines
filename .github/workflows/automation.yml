@@ -14,7 +14,7 @@ jobs:
       - name: Start EC2 Instance
         run: |
           echo "Starting EC2 Instance"
-          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
+          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region us-east-2
           echo "EC2 Instance Started"
       
       # Esperar a que la instancia EC2 esté en estado 'running'
