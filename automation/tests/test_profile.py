@@ -19,7 +19,6 @@ from automation.utils.common_data import CommonData
     ],
 )
 @pytest.mark.web
-@pytest.mark.browser_firefox
 def test_login_web(driver, username, password, expected_url):
     # Instanciar la página de perfil
     profile_page = ProfilePage(driver)
@@ -45,7 +44,6 @@ def test_login_web(driver, username, password, expected_url):
     ],
 )
 @pytest.mark.mobile
-@pytest.mark.browser_firefox
 def test_login_mobile(driver, username, password, expected_url):
     # Instanciar la página de perfil
     profile_page = ProfilePage(driver)
