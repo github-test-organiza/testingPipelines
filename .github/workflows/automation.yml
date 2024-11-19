@@ -1,0 +1,40 @@
+name: EC2 Lifecycle
+
+on:
+  push:
+    branches:
+      - main  # Se ejecuta cuando se hace un push a la rama principal
+
+jobs:
+  # 1. Levantar la instancia EC2
+  start_ec2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Start EC2 Instance
+        run: |
+          echo "Starting EC2 Instance"
+          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region ${{ secrets.AWS_REGION }}
+          echo "EC2 Instance Started"
+
+  # 2. Realizar el trabajo (Ejemplo: echo)
+  echo_job:
+    runs-on: ubuntu-latest
+    needs: start_ec2  # Este trabajo depende de que 'start_ec2' se ejecute primero
+    steps:
+      - name: Echo Job
+        run: |
+          echo "EC2 instance is up and running!"
+
+  # 3. Detener la instancia EC2
+  stop_ec2:
+    runs-on: ubuntu-latest
+    needs: echo_job  # Este trabajo depende de que 'echo_job' se ejecute primero
+    steps:
+      - name: Stop EC2 Instance
+        run: |
+          echo "Stopping EC2 Instance"
+          aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region ${{ secrets.AWS_REGION }}
+          echo "EC2 Instance Stopped"
