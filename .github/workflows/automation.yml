@@ -10,30 +10,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Clonar el repositorio
+      # Iniciar EC2 Instance
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Configurar credenciales de AWS
       - name: Set up AWS credentials
         run: |
+          echo "Setting up AWS credentials"
           echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+          echo "EC2_SSH_KEY=${{ secrets.EC2_SSH_KEY }}" >> $GITHUB_ENV
       
-      # Iniciar la instancia EC2
       - name: Start EC2 Instance
         run: |
-          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
-          echo "EC2 Instance Started"
+         echo "Starting EC2 Instance"
+         aws ec2 start-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
+         echo "EC2 Instance Started"
 
-      # Esperar hasta que la instancia esté en estado 'running'
+      # Esperar a que la instancia EC2 esté en estado 'running'
       - name: Wait for EC2 to be running
         run: |
+          echo "Waiting for EC2 Instance to be Running..."
           aws ec2 wait instance-running --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance is Running"
 
-      # Obtener la dirección IP pública de la instancia EC2
+      # Obtener la IP pública de la instancia
       - name: Get EC2 Public IP
         id: get-ip
         run: |
@@ -42,18 +44,14 @@ jobs:
             --region $AWS_REGION \
             --query "Reservations[0].Instances[0].PublicIpAddress" \
             --output text)
+          echo "PUBLIC_IP=$PUBLIC_IP"
           echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
-
-      # Crear archivo temporal con la clave SSH
-      - name: Create temporary SSH key
-        run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > temp_key.pem
-          chmod 600 temp_key.pem
 
       # Levantar el self-hosted runner
       - name: Start self-hosted runner on EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i temp_key.pem ubuntu@$PUBLIC_IP << 'EOF'
+          echo "Starting self-hosted runner on EC2"
+          ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY ubuntu@$PUBLIC_IP << 'EOF'
             cd /actions-runner/
             ./run.sh &
           EOF
@@ -99,5 +97,6 @@ jobs:
       # Detener la instancia EC2
       - name: Stop EC2 Instance
         run: |
+          echo "Stopping EC2 Instance"
           aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance Stopped"
