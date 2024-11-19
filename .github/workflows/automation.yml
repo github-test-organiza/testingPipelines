@@ -54,7 +54,7 @@ jobs:
         run: |
           echo "Starting self-hosted runner on EC2"
           ssh -o StrictHostKeyChecking=no -i $EC2_SSH_KEY ubuntu@$PUBLIC_IP << 'EOF'
-            cd /actions-runner/
+            cd actions-runner/
             ./run.sh &
           EOF
 
