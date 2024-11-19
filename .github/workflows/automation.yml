@@ -13,10 +13,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Set up AWS credentials
+        run: |
+          echo "Setting up AWS credentials"
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
+
       - name: Start EC2 Instance
         run: |
           echo "Starting EC2 Instance"
-          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region ${{ secrets.AWS_REGION }}
+          aws ec2 start-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance Started"
 
   # 2. Realizar el trabajo (Ejemplo: echo)
@@ -36,5 +43,5 @@ jobs:
       - name: Stop EC2 Instance
         run: |
           echo "Stopping EC2 Instance"
-          aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region ${{ secrets.AWS_REGION }}
+          aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance Stopped"
