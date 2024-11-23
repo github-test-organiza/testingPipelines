@@ -80,7 +80,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: test-reports  # Nombre que aparecerá en los artifacts
-          path: reports       # Ruta de la carpeta que contiene los reportes
+          path: report      # Ruta de la carpeta que contiene los reportes
 
   shutdown:
     needs: test  # Espera a que los tests terminen

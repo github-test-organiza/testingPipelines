@@ -3,6 +3,7 @@ import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.remote.webdriver import WebDriver
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,7 +25,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="function")
-def driver(request):
+def driver(request) -> WebDriver:
     logging.info("Dentro del fixture driver")
 
     # Obtener opciones de configuración
