@@ -77,7 +77,7 @@ jobs:
       # Guardar reportes como artifacts
       - name: Upload test reports
         if: always()  # Asegúrate de guardar los reportes incluso si las pruebas fallan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-reports  # Nombre que aparecerá en los artifacts
           path: report      # Ruta de la carpeta que contiene los reportes
