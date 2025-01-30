@@ -33,7 +33,7 @@ jobs:
       # Esperar a que la instancia EC2 esté en estado 'running'
       - name: Wait for EC2 to be running
         run: |
-          echo "Waiting for EC2 Instance to be Running..."
+          echo "Waiting for EC2 Instance to be Running...."
           aws ec2 wait instance-running --instance-ids i-062125650148d0d32 --region $AWS_REGION
           echo "EC2 Instance is Running"
 
