@@ -1,100 +1,76 @@
-name: Run Selenium Tests on Push
+name: Run custom Specific Playwright Tests
 
 on:
-  push:
-    branches:
-      - main  # Cambia "main" si tu rama principal tiene otro nombre
+  workflow_dispatch:
+    inputs:
+      testFile:
+        description: "Test file to run"
+        required: true
+        type: choice
+        options:
+          - tests/vineportal/smoke.tests.spec.js
+          - tests/vineportal/admin.tests.spec.js
+          - tests/vineportal/flows.tests.spec.js
+          - tests/vineportal/massCommunications.tests.spec.js
+          - tests/vineportal/projectForms.tests.spec.js
+          - tests/vineportal/logInPortal.tests.spec.js
+      grep:
+        description: "Filter tests by name using --grep (optional)"
+        required: false
+      baseUrl:
+        description: "Base URL to test against"
+        required: false
+      givenUsername:
+        description: "Username for login"
+        required: false
+      givenPassword:
+        description: "Password for login"
+        required: false
+      givenFilevineUsername:
+        description: "Username for Filevine login"
+        required: false
+      givenFilevinePassword:
+        description: "Password for Filevine login"
+        required: false
 
 jobs:
-  deploy-and-test:
+  run-playwright-tests:
     runs-on: ubuntu-latest
 
     steps:
-      # Iniciar EC2 Instance
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up AWS credentials
-        run: |
-          echo "Setting up AWS credentials"
-          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> $GITHUB_ENV
-          echo "${{ secrets.EC2_SSH_KEY }}" | base64 -d > ec2_key.pem
-          chmod 600 ec2_key.pem
-          echo "EC2_SSH_KEY=ec2_key.pem" >> $GITHUB_ENV
-      
-      - name: Start EC2 Instance
-        run: |
-         echo "Starting EC2 Instance"
-         aws ec2 start-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
-         echo "EC2 Instance Started"
-
-      # Esperar a que la instancia EC2 esté en estado 'running'
-      - name: Wait for EC2 to be running
-        run: |
-          echo "Waiting for EC2 Instance to be Running...."
-          aws ec2 wait instance-running --instance-ids i-062125650148d0d32 --region $AWS_REGION
-          echo "EC2 Instance is Running"
-
-      # Obtener la IP pública de la instancia
-      - name: Get EC2 Public IP
-        id: get-ip
-        run: |
-          PUBLIC_IP=$(aws ec2 describe-instances \
-            --instance-ids i-062125650148d0d32 \
-            --region $AWS_REGION \
-            --query "Reservations[0].Instances[0].PublicIpAddress" \
-            --output text)
-          echo "PUBLIC_IP=$PUBLIC_IP"
-          echo "PUBLIC_IP=$PUBLIC_IP" >> $GITHUB_ENV
-
-  test:
-    needs: deploy-and-test  # Espera a que el job 'deploy-and-test' termine
-    runs-on: self-hosted  # Usa el self-hosted runner
-
-    steps:
-      # Checkout del código del repositorio
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Configurar Python
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          python-version: '3.13.0'  # Cambia según la versión que uses
+          node-version: "20"
 
-      # Instalar dependencias
       - name: Install dependencies
+        run: npm ci
+
+      - name: Install browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        env:
+          GIVEN_BASE_URL_PORTAL: ${{ github.event.inputs.baseUrl }}
+          GIVENUSERNAME: ${{ github.event.inputs.givenUsername }}
+          GIVENPASSWORD: ${{ github.event.inputs.givenPassword }}
+          GIVENFILEVINEUSERNAME: ${{ github.event.inputs.givenFilevineUsername }}
+          GIVENFILEVINEPASSWORD: ${{ github.event.inputs.givenFilevinePassword }}
+
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt  # Asegúrate de tener este archivo con tus dependencias
+          if [[ "${{ github.event.inputs.grep }}" != "" ]]; then
+            npx playwright test ${{ github.event.inputs.testFile }} --grep "${{ github.event.inputs.grep }}"
+          else
+            npx playwright test ${{ github.event.inputs.testFile }}
+          fi
 
-      # Ejecutar Pytest
-      - name: Run tests
-        run: pytest -s
-
-      # Guardar reportes como artifacts
-      - name: Upload test reports
-        if: always()  # Asegúrate de guardar los reportes incluso si las pruebas fallan
+      - name: Upload Playwright report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: test-reports  # Nombre que aparecerá en los artifacts
-          path: report      # Ruta de la carpeta que contiene los reportes
-
-  shutdown:
-    needs: test  # Espera a que los tests terminen
-    runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-
-    steps:
-      # Detener la instancia EC2
-      - name: Stop EC2 Instance
-        run: |
-          echo "Stopping EC2 Instance"
-          aws ec2 stop-instances --instance-ids i-062125650148d0d32 --region $AWS_REGION
-          echo "EC2 Instance Stopped"
-    if: always()
+          name: playwright-report
+          path: reports/html/
+          retention-days: 30
