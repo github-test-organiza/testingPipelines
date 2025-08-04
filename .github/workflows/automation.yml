@@ -97,13 +97,11 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
         run: |
-          ISSUE_KEY="MT-4"  
-          COMMENT_TEXT="✅ GitHub Actions: The test completed successfully. Please review the attached report."
-
-          curl -X POST -u $JIRA_EMAIL:$JIRA_API_TOKEN \
+          ISSUE_KEY="MT-4"
+          COMMENT_TEXT="✅ GitHub Actions: The test completed successfully. Please review the attached report..
+          🔗 You can review the report in the attached job artifacts."
+          curl -X POST \
+            -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
             -H "Content-Type: application/json" \
             --url "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/comment" \
-            -d '{
-              "body": "'"$COMMENT_TEXT"'"
-            }'
-
+            -d "$(jq -n --arg body "$COMMENT_TEXT" '{body: $body}')"
