@@ -1,5 +1,4 @@
 name: Run custom Specific Playwright Tests
-
 on:
   workflow_dispatch:
     inputs:
@@ -32,7 +31,6 @@ on:
       givenFilevinePassword:
         description: "Password for Filevine login"
         required: false
-
 jobs:
   debug-inputs:
     runs-on: ubuntu-latest
@@ -47,26 +45,20 @@ jobs:
           echo "🔍 givenPassword: ${{ github.event.inputs.givenPassword }}"
           echo "🔍 givenFilevineUsername: ${{ github.event.inputs.givenFilevineUsername }}"
           echo "🔍 givenFilevinePassword: ${{ github.event.inputs.givenFilevinePassword }}"
-
   run-playwright-tests:
     runs-on: ubuntu-latest
-    needs: debug-inputs  # ← Este job se ejecuta solo si debug-inputs se ejecuta bien
-
+    needs: debug-inputs
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-
       - name: Install dependencies
         run: npm ci
-
       - name: Install browsers
         run: npx playwright install --with-deps
-
       - name: Run Playwright tests
         env:
           GIVEN_BASE_URL_PORTAL: ${{ github.event.inputs.baseUrl }}
@@ -74,14 +66,12 @@ jobs:
           GIVENPASSWORD: ${{ github.event.inputs.givenPassword }}
           GIVENFILEVINEUSERNAME: ${{ github.event.inputs.givenFilevineUsername }}
           GIVENFILEVINEPASSWORD: ${{ github.event.inputs.givenFilevinePassword }}
-
         run: |
           if [[ "${{ github.event.inputs.grep }}" != "" ]]; then
             npx playwright test ${{ github.event.inputs.testFile }} --grep "${{ github.event.inputs.grep }}"
           else
             npx playwright test ${{ github.event.inputs.testFile }}
           fi
-
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
@@ -89,7 +79,6 @@ jobs:
           name: playwright-report
           path: reports/html/
           retention-days: 30
-
       - name: Send feedback to Jira
         if: always()
         env:
@@ -98,10 +87,40 @@ jobs:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
         run: |
           ISSUE_KEY="MT-4"
-          COMMENT_TEXT="✅ GitHub Actions: The test completed successfully. Please review the attached report..
-          🔗 You can review the report in the attached job artifacts."
+          
+          # Create the comment body in Atlassian Document Format (ADF)
+          COMMENT_BODY=$(cat << 'EOF'
+          {
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "✅ GitHub Actions: The test completed successfully. Please review the attached report."
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "🔗 You can review the report in the attached job artifacts."
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          EOF
+          )
+          
           curl -X POST \
             -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
             -H "Content-Type: application/json" \
             --url "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/comment" \
-            -d "$(jq -n --arg body "$COMMENT_TEXT" '{body: $body}')"
+            -d "$COMMENT_BODY"
