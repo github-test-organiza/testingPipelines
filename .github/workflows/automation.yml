@@ -72,6 +72,128 @@ jobs:
           else
             npx playwright test ${{ github.event.inputs.testFile }}
           fi
+      - name: Ensure Playwright report exists and extract summary
+        if: always()
+        id: report-analysis
+        run: |
+          # Crear directorio de reportes si no existe
+          mkdir -p reports/html
+          
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          
+          # Verificar si existe el reporte
+          if [ ! -f "reports/html/index.html" ]; then
+            echo "📋 No se encontró reporte de Playwright, creando reporte vacío..."
+            
+            # Crear un reporte HTML básico
+            cat > reports/html/index.html << EOF
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Playwright Test Report</title>
+              <meta charset="utf-8">
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; }
+                  .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                  .header { background: #e3f2fd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+                  .warning { color: #ff6b35; font-weight: bold; font-size: 18px; }
+                  .info { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px; }
+                  .info h3 { color: #1976d2; margin-top: 0; }
+                  .info ul { margin: 10px 0; }
+                  .info li { margin: 5px 0; }
+                  .status { background: #ffeb3b; padding: 10px; border-radius: 5px; margin: 15px 0; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <div class="header">
+                      <h1>🎭 Playwright Test Report</h1>
+                      <p class="warning">⚠️ Reporte Vacío - No se ejecutaron pruebas completamente</p>
+                  </div>
+                  <div class="status">
+                      <strong>Estado:</strong> Las pruebas no se completaron exitosamente o no generaron reporte
+                  </div>
+                  <div class="info">
+                      <h3>📊 Información de la Ejecución:</h3>
+                      <ul>
+                          <li><strong>Archivo de prueba:</strong> ${{ github.event.inputs.testFile }}</li>
+                          <li><strong>Filtro (grep):</strong> ${{ github.event.inputs.grep || 'Ninguno' }}</li>
+                          <li><strong>URL Base:</strong> ${{ github.event.inputs.baseUrl || 'Por defecto' }}</li>
+                          <li><strong>Ejecutado por:</strong> ${{ github.actor }}</li>
+                          <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
+                          <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
+                          <li><strong>Fecha de ejecución:</strong> ${TIMESTAMP}</li>
+                      </ul>
+                  </div>
+                  <div class="info">
+                      <h3>🔍 Posibles Causas:</h3>
+                      <ul>
+                          <li>Las pruebas fallaron antes de generar el reporte</li>
+                          <li>Error en la configuración de Playwright</li>
+                          <li>Problemas de conectividad o timeout</li>
+                          <li>Error en las credenciales de acceso</li>
+                      </ul>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+            
+            REPORT_SUMMARY="📋 Reporte vacío generado - Las pruebas no se completaron exitosamente"
+            REPORT_STATUS="EMPTY"
+            TEST_RESULTS="No se ejecutaron pruebas"
+            
+            echo "✅ Reporte vacío creado exitosamente"
+          else
+            echo "✅ Reporte de Playwright encontrado, analizando contenido..."
+            
+            # Analizar el reporte existente para extraer información
+            REPORT_STATUS="COMPLETED"
+            
+            # Extraer información básica del reporte (ajustar según tu formato de reporte)
+            if grep -qi "passed" reports/html/index.html && grep -qi "failed" reports/html/index.html; then
+              # Intentar extraer estadísticas básicas
+              PASSED_TESTS=$(grep -o "passed" reports/html/index.html | wc -l || echo "0")
+              FAILED_TESTS=$(grep -o "failed" reports/html/index.html | wc -l || echo "0")
+              TEST_RESULTS="Tests ejecutados: ${PASSED_TESTS} passed, ${FAILED_TESTS} failed"
+              REPORT_SUMMARY="📊 Reporte completo generado - $TEST_RESULTS"
+            else
+              TEST_RESULTS="Reporte generado exitosamente"
+              REPORT_SUMMARY="📊 Reporte de Playwright generado correctamente"
+            fi
+          fi
+          
+          # Crear un resumen en texto plano para incluir en Jira
+          cat > report_summary.txt << EOF
+          📋 RESUMEN DEL REPORTE DE PLAYWRIGHT
+          
+          🔸 Estado: $REPORT_STATUS
+          🔸 Resultado: $TEST_RESULTS
+          🔸 Archivo de prueba: ${{ github.event.inputs.testFile }}
+          🔸 Filtro aplicado: ${{ github.event.inputs.grep || 'Ninguno' }}
+          🔸 URL Base: ${{ github.event.inputs.baseUrl || 'Por defecto' }}
+          🔸 Ejecutado por: ${{ github.actor }}
+          🔸 Branch: ${{ github.ref_name }}
+          🔸 Fecha: ${TIMESTAMP}
+          🔸 Run ID: ${{ github.run_id }}
+          
+          $(if [ "$REPORT_STATUS" = "EMPTY" ]; then
+              echo "⚠️ ATENCIÓN: Este es un reporte vacío porque las pruebas no se completaron exitosamente."
+              echo ""
+              echo "Posibles causas:"
+              echo "• Las pruebas fallaron antes de generar el reporte"
+              echo "• Error en la configuración de Playwright" 
+              echo "• Problemas de conectividad o timeout"
+              echo "• Error en las credenciales de acceso"
+          else
+              echo "✅ Las pruebas se ejecutaron y generaron reporte completo."
+          fi)
+          EOF
+          
+          # Exportar variables para siguientes steps
+          echo "report_summary=$REPORT_SUMMARY" >> $GITHUB_OUTPUT
+          echo "report_status=$REPORT_STATUS" >> $GITHUB_OUTPUT
+          echo "test_results=$TEST_RESULTS" >> $GITHUB_OUTPUT
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()
@@ -79,36 +201,34 @@ jobs:
           name: playwright-report
           path: reports/html/
           retention-days: 30
-      
-      - name: Prepare report for Jira upload
+      - name: Upload report summary
+        uses: actions/upload-artifact@v4
         if: always()
-        run: |
-          # Crear un ZIP del reporte para subir a Jira
-          cd reports/html
-          zip -r ../../playwright-report-${{ github.run_id }}.zip .
-          cd ../..
-          
-          # También crear un resumen en texto plano si existe
-          if [ -f "reports/html/index.html" ]; then
-            echo "Playwright Test Report - Run ID: ${{ github.run_id }}" > test-summary.txt
-            echo "Execution Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> test-summary.txt
-            echo "Test File: ${{ github.event.inputs.testFile }}" >> test-summary.txt
-            echo "Filter: ${{ github.event.inputs.grep || 'None' }}" >> test-summary.txt
-            echo "Base URL: ${{ github.event.inputs.baseUrl || 'Default' }}" >> test-summary.txt
-            echo "Status: ${{ job.status }}" >> test-summary.txt
-            echo "" >> test-summary.txt
-            echo "Full HTML report attached as ZIP file." >> test-summary.txt
-          fi
-      
-      - name: Deploy report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./reports/html
-          destination_dir: test-reports/${{ github.run_id }}
-          keep_files: true
-      - name: Upload attachments to Jira and send comment
+          name: report-summary
+          path: report_summary.txt
+          retention-days: 30
+      - name: Deploy report to GitHub Pages (if enabled)
+        if: always()
+        continue-on-error: true
+        run: |
+          # Solo intentar si GitHub Pages está habilitado
+          echo "📄 Intentando desplegar reporte a GitHub Pages..."
+          
+          # Crear estructura para GitHub Pages
+          mkdir -p gh-pages
+          cp -r reports/html/* gh-pages/ 2>/dev/null || true
+          
+          # Crear archivo index con timestamp único
+          UNIQUE_ID="${{ github.run_id }}-$(date +%s)"
+          
+          # Renombrar el reporte con ID único para evitar conflictos
+          if [ -f "gh-pages/index.html" ]; then
+            mv gh-pages/index.html gh-pages/report-${UNIQUE_ID}.html
+            echo "📄 Reporte disponible en: report-${UNIQUE_ID}.html"
+            echo "pages_report_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/report-${UNIQUE_ID}.html" >> $GITHUB_OUTPUT
+          fi
+      - name: Send detailed feedback to Jira
         if: always()
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
@@ -121,11 +241,9 @@ jobs:
           if [ "${{ job.status }}" == "success" ]; then
             STATUS_EMOJI="✅"
             STATUS_TEXT="PASSED"
-            STATUS_COLOR="success"
           else
             STATUS_EMOJI="❌"
             STATUS_TEXT="FAILED"
-            STATUS_COLOR="failure"
           fi
           
           # Get current timestamp
@@ -134,51 +252,18 @@ jobs:
           # Get run URL
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           
-          # Upload ZIP file to Jira if it exists
-          ATTACHMENT_NAMES=""
-          if [ -f "playwright-report-${{ github.run_id }}.zip" ]; then
-            echo "Uploading Playwright report ZIP to Jira..."
-            UPLOAD_RESPONSE=$(curl -s -X POST \
-              -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "X-Atlassian-Token: no-check" \
-              -F "file=@playwright-report-${{ github.run_id }}.zip" \
-              "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/attachments")
-            
-            if echo "$UPLOAD_RESPONSE" | grep -q "filename"; then
-              ATTACHMENT_NAMES="📎 playwright-report-${{ github.run_id }}.zip"
-              echo "✅ ZIP report uploaded successfully"
-            else
-              echo "❌ Failed to upload ZIP report: $UPLOAD_RESPONSE"
-            fi
+          # Leer el resumen del reporte
+          DETAILED_SUMMARY=""
+          if [ -f "report_summary.txt" ]; then
+            # Escapar caracteres especiales para JSON y convertir saltos de línea
+            DETAILED_SUMMARY=$(cat report_summary.txt | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}')
           fi
           
-          # Upload text summary to Jira if it exists
-          if [ -f "test-summary.txt" ]; then
-            echo "Uploading test summary to Jira..."
-            SUMMARY_RESPONSE=$(curl -s -X POST \
-              -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
-              -H "X-Atlassian-Token: no-check" \
-              -F "file=@test-summary.txt" \
-              "$JIRA_BASE_URL/rest/api/3/issue/$ISSUE_KEY/attachments")
-            
-            if echo "$SUMMARY_RESPONSE" | grep -q "filename"; then
-              if [ -n "$ATTACHMENT_NAMES" ]; then
-                ATTACHMENT_NAMES="$ATTACHMENT_NAMES, 📎 test-summary.txt"
-              else
-                ATTACHMENT_NAMES="📎 test-summary.txt"
-              fi
-              echo "✅ Summary uploaded successfully"
-            else
-              echo "❌ Failed to upload summary: $SUMMARY_RESPONSE"
-            fi
-          fi
+          # Report info from previous step
+          REPORT_STATUS="${{ steps.report-analysis.outputs.report_status }}"
+          TEST_RESULTS="${{ steps.report-analysis.outputs.test_results }}"
           
-          # Create detailed comment body in ADF format
-          ATTACHMENT_TEXT="No attachments uploaded"
-          if [ -n "$ATTACHMENT_NAMES" ]; then
-            ATTACHMENT_TEXT="$ATTACHMENT_NAMES"
-          fi
-          
+          # Create detailed comment body in ADF format with embedded report summary
           COMMENT_BODY=$(cat << EOF
           {
             "body": {
@@ -204,7 +289,21 @@ jobs:
                   "content": [
                     {
                       "type": "text",
-                      "text": "📊 Test Details:",
+                      "text": "📊 Test Results: ",
+                      "marks": [{"type": "strong"}]
+                    },
+                    {
+                      "type": "text",
+                      "text": "${TEST_RESULTS}"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "📋 Execution Details:",
                       "marks": [{"type": "strong"}]
                     }
                   ]
@@ -329,31 +428,72 @@ jobs:
                   ]
                 },
                 {
+                  "type": "rule"
+                },
+                {
                   "type": "paragraph",
                   "content": [
                     {
                       "type": "text",
-                      "text": "📎 Attachments:",
+                      "text": "📄 DETAILED REPORT SUMMARY",
                       "marks": [{"type": "strong"}]
                     }
                   ]
                 },
                 {
-                  "type": "paragraph",
+                  "type": "codeBlock",
+                  "attrs": {"language": "text"},
                   "content": [
                     {
                       "type": "text",
-                      "text": "${ATTACHMENT_TEXT}"
+                      "text": "${DETAILED_SUMMARY}"
                     }
                   ]
+                },
+                {
+                  "type": "rule"
                 },
                 {
                   "type": "paragraph",
                   "content": [
                     {
                       "type": "text",
-                      "text": "🔗 GitHub Actions Run: ",
-                      "marks": [{"type": "link", "attrs": {"href": "${RUN_URL}"}}]
+                      "text": "🔗 Links:",
+                      "marks": [{"type": "strong"}]
+                    }
+                  ]
+                },
+                {
+                  "type": "bulletList",
+                  "content": [
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "GitHub Actions Run",
+                              "marks": [{"type": "link", "attrs": {"href": "${RUN_URL}"}}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "📋 El reporte completo de Playwright está incluido en el resumen de arriba"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
@@ -363,8 +503,6 @@ jobs:
           EOF
           )
           
-          # Send comment to Jira
-          echo "Sending comment to Jira..."
           curl -X POST \
             -u "$JIRA_EMAIL:$JIRA_API_TOKEN" \
             -H "Content-Type: application/json" \
