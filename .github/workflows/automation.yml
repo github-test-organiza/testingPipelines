@@ -76,16 +76,16 @@ jobs:
         if: always()
         id: report-analysis
         run: |
-          # Crear directorio de reportes si no existe
+          # Create reports directory if it doesn't exist
           mkdir -p reports/html
           
           TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           
-          # Verificar si existe el reporte
+          # Check if report exists
           if [ ! -f "reports/html/index.html" ]; then
-            echo "📋 No se encontró reporte de Playwright, creando reporte vacío..."
+            echo "📋 Playwright report not found, creating empty report..."
             
-            # Crear un reporte HTML básico
+            # Create basic HTML report
             cat > reports/html/index.html << EOF
           <!DOCTYPE html>
           <html>
@@ -108,30 +108,30 @@ jobs:
               <div class="container">
                   <div class="header">
                       <h1>🎭 Playwright Test Report</h1>
-                      <p class="warning">⚠️ Reporte Vacío - No se ejecutaron pruebas completamente</p>
+                      <p class="warning">⚠️ Empty Report - Tests were not completed successfully</p>
                   </div>
                   <div class="status">
-                      <strong>Estado:</strong> Las pruebas no se completaron exitosamente o no generaron reporte
+                      <strong>Status:</strong> Tests did not complete successfully or did not generate a report
                   </div>
                   <div class="info">
-                      <h3>📊 Información de la Ejecución:</h3>
+                      <h3>📊 Execution Information:</h3>
                       <ul>
-                          <li><strong>Archivo de prueba:</strong> ${{ github.event.inputs.testFile }}</li>
-                          <li><strong>Filtro (grep):</strong> ${{ github.event.inputs.grep || 'Ninguno' }}</li>
-                          <li><strong>URL Base:</strong> ${{ github.event.inputs.baseUrl || 'Por defecto' }}</li>
-                          <li><strong>Ejecutado por:</strong> ${{ github.actor }}</li>
+                          <li><strong>Test file:</strong> ${{ github.event.inputs.testFile }}</li>
+                          <li><strong>Filter (grep):</strong> ${{ github.event.inputs.grep || 'None' }}</li>
+                          <li><strong>Base URL:</strong> ${{ github.event.inputs.baseUrl || 'Default' }}</li>
+                          <li><strong>Executed by:</strong> ${{ github.actor }}</li>
                           <li><strong>Branch:</strong> ${{ github.ref_name }}</li>
                           <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
-                          <li><strong>Fecha de ejecución:</strong> ${TIMESTAMP}</li>
+                          <li><strong>Execution date:</strong> ${TIMESTAMP}</li>
                       </ul>
                   </div>
                   <div class="info">
-                      <h3>🔍 Posibles Causas:</h3>
+                      <h3>🔍 Possible Causes:</h3>
                       <ul>
-                          <li>Las pruebas fallaron antes de generar el reporte</li>
-                          <li>Error en la configuración de Playwright</li>
-                          <li>Problemas de conectividad o timeout</li>
-                          <li>Error en las credenciales de acceso</li>
+                          <li>Tests failed before generating the report</li>
+                          <li>Playwright configuration error</li>
+                          <li>Connectivity issues or timeouts</li>
+                          <li>Access credentials error</li>
                       </ul>
                   </div>
               </div>
@@ -139,58 +139,58 @@ jobs:
           </html>
           EOF
             
-            REPORT_SUMMARY="📋 Reporte vacío generado - Las pruebas no se completaron exitosamente"
+            REPORT_SUMMARY="📋 Empty report generated - Tests were not completed successfully"
             REPORT_STATUS="EMPTY"
-            TEST_RESULTS="No se ejecutaron pruebas"
+            TEST_RESULTS="No tests were executed"
             
-            echo "✅ Reporte vacío creado exitosamente"
+            echo "✅ Empty report created successfully"
           else
-            echo "✅ Reporte de Playwright encontrado, analizando contenido..."
+            echo "✅ Playwright report found, analyzing content..."
             
-            # Analizar el reporte existente para extraer información
+            # Analyze existing report to extract information
             REPORT_STATUS="COMPLETED"
             
-            # Extraer información básica del reporte (ajustar según tu formato de reporte)
+            # Extract basic information from report (adjust according to your report format)
             if grep -qi "passed" reports/html/index.html && grep -qi "failed" reports/html/index.html; then
-              # Intentar extraer estadísticas básicas
+              # Try to extract basic statistics
               PASSED_TESTS=$(grep -o "passed" reports/html/index.html | wc -l || echo "0")
               FAILED_TESTS=$(grep -o "failed" reports/html/index.html | wc -l || echo "0")
-              TEST_RESULTS="Tests ejecutados: ${PASSED_TESTS} passed, ${FAILED_TESTS} failed"
-              REPORT_SUMMARY="📊 Reporte completo generado - $TEST_RESULTS"
+              TEST_RESULTS="Tests executed: ${PASSED_TESTS} passed, ${FAILED_TESTS} failed"
+              REPORT_SUMMARY="📊 Complete report generated - $TEST_RESULTS"
             else
-              TEST_RESULTS="Reporte generado exitosamente"
-              REPORT_SUMMARY="📊 Reporte de Playwright generado correctamente"
+              TEST_RESULTS="Report generated successfully"
+              REPORT_SUMMARY="📊 Playwright report generated correctly"
             fi
           fi
           
-          # Crear un resumen en texto plano para incluir en Jira
+          # Create plain text summary for inclusion in Jira
           cat > report_summary.txt << EOF
-          📋 RESUMEN DEL REPORTE DE PLAYWRIGHT
+          📋 PLAYWRIGHT TEST REPORT SUMMARY
           
-          🔸 Estado: $REPORT_STATUS
-          🔸 Resultado: $TEST_RESULTS
-          🔸 Archivo de prueba: ${{ github.event.inputs.testFile }}
-          🔸 Filtro aplicado: ${{ github.event.inputs.grep || 'Ninguno' }}
-          🔸 URL Base: ${{ github.event.inputs.baseUrl || 'Por defecto' }}
-          🔸 Ejecutado por: ${{ github.actor }}
+          🔸 Status: $REPORT_STATUS
+          🔸 Result: $TEST_RESULTS
+          🔸 Test file: ${{ github.event.inputs.testFile }}
+          🔸 Filter applied: ${{ github.event.inputs.grep || 'None' }}
+          🔸 Base URL: ${{ github.event.inputs.baseUrl || 'Default' }}
+          🔸 Executed by: ${{ github.actor }}
           🔸 Branch: ${{ github.ref_name }}
-          🔸 Fecha: ${TIMESTAMP}
+          🔸 Date: ${TIMESTAMP}
           🔸 Run ID: ${{ github.run_id }}
           
           $(if [ "$REPORT_STATUS" = "EMPTY" ]; then
-              echo "⚠️ ATENCIÓN: Este es un reporte vacío porque las pruebas no se completaron exitosamente."
+              echo "⚠️ WARNING: This is an empty report because tests were not completed successfully."
               echo ""
-              echo "Posibles causas:"
-              echo "• Las pruebas fallaron antes de generar el reporte"
-              echo "• Error en la configuración de Playwright" 
-              echo "• Problemas de conectividad o timeout"
-              echo "• Error en las credenciales de acceso"
+              echo "Possible causes:"
+              echo "• Tests failed before generating the report"
+              echo "• Playwright configuration error" 
+              echo "• Connectivity issues or timeouts"
+              echo "• Access credentials error"
           else
-              echo "✅ Las pruebas se ejecutaron y generaron reporte completo."
+              echo "✅ Tests were executed and generated a complete report."
           fi)
           EOF
           
-          # Exportar variables para siguientes steps
+          # Export variables for next steps
           echo "report_summary=$REPORT_SUMMARY" >> $GITHUB_OUTPUT
           echo "report_status=$REPORT_STATUS" >> $GITHUB_OUTPUT
           echo "test_results=$TEST_RESULTS" >> $GITHUB_OUTPUT
@@ -212,20 +212,20 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          # Solo intentar si GitHub Pages está habilitado
-          echo "📄 Intentando desplegar reporte a GitHub Pages..."
+          # Only try if GitHub Pages is enabled
+          echo "📄 Attempting to deploy report to GitHub Pages..."
           
-          # Crear estructura para GitHub Pages
+          # Create structure for GitHub Pages
           mkdir -p gh-pages
           cp -r reports/html/* gh-pages/ 2>/dev/null || true
           
-          # Crear archivo index con timestamp único
+          # Create index file with unique timestamp
           UNIQUE_ID="${{ github.run_id }}-$(date +%s)"
           
-          # Renombrar el reporte con ID único para evitar conflictos
+          # Rename report with unique ID to avoid conflicts
           if [ -f "gh-pages/index.html" ]; then
             mv gh-pages/index.html gh-pages/report-${UNIQUE_ID}.html
-            echo "📄 Reporte disponible en: report-${UNIQUE_ID}.html"
+            echo "📄 Report available at: report-${UNIQUE_ID}.html"
             echo "pages_report_url=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/report-${UNIQUE_ID}.html" >> $GITHUB_OUTPUT
           fi
       - name: Send detailed feedback to Jira
@@ -252,10 +252,10 @@ jobs:
           # Get run URL
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           
-          # Leer el resumen del reporte
+          # Read report summary
           DETAILED_SUMMARY=""
           if [ -f "report_summary.txt" ]; then
-            # Escapar caracteres especiales para JSON y convertir saltos de línea
+            # Escape special characters for JSON and convert line breaks
             DETAILED_SUMMARY=$(cat report_summary.txt | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}')
           fi
           
@@ -489,7 +489,7 @@ jobs:
                           "content": [
                             {
                               "type": "text",
-                              "text": "📋 El reporte completo de Playwright está incluido en el resumen de arriba"
+                              "text": "📋 Complete Playwright report is included in the summary above"
                             }
                           ]
                         }
