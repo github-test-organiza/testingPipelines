@@ -88,8 +88,25 @@ jobs:
         run: |
           ISSUE_KEY="MT-4"
           
-          # Create the comment body in Atlassian Document Format (ADF)
-          COMMENT_BODY=$(cat << 'EOF'
+          # Determine test result status
+          if [ "${{ job.status }}" == "success" ]; then
+            STATUS_EMOJI="✅"
+            STATUS_TEXT="PASSED"
+            STATUS_COLOR="success"
+          else
+            STATUS_EMOJI="❌"
+            STATUS_TEXT="FAILED"
+            STATUS_COLOR="failure"
+          fi
+          
+          # Get current timestamp
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          
+          # Get run URL
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          
+          # Create detailed comment body in ADF format
+          COMMENT_BODY=$(cat << EOF
           {
             "body": {
               "type": "doc",
@@ -100,7 +117,12 @@ jobs:
                   "content": [
                     {
                       "type": "text",
-                      "text": "✅ GitHub Actions: The test completed successfully. Please review the attached report."
+                      "text": "${STATUS_EMOJI} GitHub Actions Test Execution: ",
+                      "marks": [{"type": "strong"}]
+                    },
+                    {
+                      "type": "text",
+                      "text": "${STATUS_TEXT}"
                     }
                   ]
                 },
@@ -109,7 +131,171 @@ jobs:
                   "content": [
                     {
                       "type": "text",
-                      "text": "🔗 You can review the report in the attached job artifacts."
+                      "text": "📊 Test Details:",
+                      "marks": [{"type": "strong"}]
+                    }
+                  ]
+                },
+                {
+                  "type": "bulletList",
+                  "content": [
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Test File: "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${{ github.event.inputs.testFile }}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Filter (grep): "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${{ github.event.inputs.grep || 'None' }}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Base URL: "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${{ github.event.inputs.baseUrl || 'Default' }}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Executed by: "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${{ github.actor }}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Branch: "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${{ github.ref_name }}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Execution Time: "
+                            },
+                            {
+                              "type": "text",
+                              "text": "${TIMESTAMP}",
+                              "marks": [{"type": "code"}]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "🔗 Links:",
+                      "marks": [{"type": "strong"}]
+                    }
+                  ]
+                },
+                {
+                  "type": "bulletList",
+                  "content": [
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "GitHub Actions Run: ",
+                              "marks": [{"type": "link", "attrs": {"href": "${RUN_URL}"}}]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "listItem",
+                      "content": [
+                        {
+                          "type": "paragraph",
+                          "content": [
+                            {
+                              "type": "text",
+                              "text": "Playwright Report: Available in job artifacts (if test completed)"
+                            }
+                          ]
+                        }
+                      ]
                     }
                   ]
                 }
